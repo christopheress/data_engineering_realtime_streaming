@@ -6,25 +6,35 @@ from flask import Flask, json
 app = Flask(__name__)
 
 
-@app.route('/sensordata/<max_sensors>/<number>')
-def get_sensor_data(max_sensors, number):
-    max_sensors = int(max_sensors)
-    number = int(number)
+@app.route('/weatherdata/')
+def get_weatherdata():
 
-    #data = []
-    #loop_range = random.sample(range(1, max_sensors), min(number, max_sensors))
-    #for number_sensor in loop_range:
-    output_dict = {
-        'beach': 'Montrose_Beach',
-        'sensor_id': random.randint(1,100), #int(number_sensor)
+    data = {
+        'sensor_id': str(random.randint(1, 100)),
         'timestamp': "{}".format((datetime.now()).now().isoformat()),
-        'water_temperature': round(random.uniform(31.5, 0.0), 2),
-        'turbidity': round(random.uniform(1683.48, 0.0), 2),
-        'battery_life': round(random.uniform(13.3, 4.8), 2),
-        'measurement_id': random.randint(10000, 999999)
+        'temperature': round(random.uniform(31.5, -5.0), 2),
+        'air_humidity': round(random.uniform(100.0, 0.0), 2),
+        'wind_speed': round(random.uniform(80.0, 0.0), 2),
+        'sunshine': random.choice([True, False])
     }
 
-    data = output_dict#.append(output_dict)
+    response = app.response_class(
+        response=json.dumps(data, indent=4),
+        status=200,
+        mimetype='application/json'
+    )
+    return response
+
+@app.route('/trafficdata/')
+def get_trafficdata():
+
+    data = {
+        'sensor_id': str(random.randint(101, 200)),
+        'timestamp': "{}".format((datetime.now()).now().isoformat()),
+        'long': str(random.randint(1, 100)),
+        'lat': str(random.randint(1, 100)),
+        'cars_ratio': round(random.uniform(0, 1), 2)
+    }
 
     response = app.response_class(
         response=json.dumps(data, indent=4),
@@ -35,4 +45,4 @@ def get_sensor_data(max_sensors, number):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port='3031')
+    app.run(host='0.0.0.0', port='3030')

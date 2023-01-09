@@ -1,12 +1,14 @@
 version: '3'
 services:
+
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.2.1
+    image: confluentinc/cp-zookeeper:7.3.0
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+
   kafka1:
-    image: confluentinc/cp-kafka:7.2.1
+    image: confluentinc/cp-kafka:7.3.0
     container_name: kafka1
     ports:
       - "8097:8097"
@@ -21,7 +23,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
 
   kafka2:
-    image: confluentinc/cp-kafka:7.2.1
+    image: confluentinc/cp-kafka:7.3.0
     container_name: kafka2
     ports:
       - "8098:8098"
@@ -38,7 +40,7 @@ services:
 
   # Create topic directly in docker compose
   init-kafka:
-    image: confluentinc/cp-kafka:7.2.1
+    image: confluentinc/cp-kafka:7.3.0
     depends_on:
       - kafka1
       - kafka2
@@ -46,17 +48,97 @@ services:
     command: |
       "  
       echo -e 'Creating kafka topics'
-      kafka-topics --bootstrap-server kafka1:9092 --create --if-not-exists --topic raw_sensor_data --replication-factor 2 --partitions 2
+      kafka-topics --bootstrap-server kafka1:9092 --create --if-not-exists --topic raw_trafficdata --replication-factor 2 --partitions 2
+      kafka-topics --bootstrap-server kafka1:9092 --create --if-not-exists --topic raw_weatherdata --replication-factor 2 --partitions 2
       
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server kafka1:9092 --list
       "
 
+  connect:
+    image: confluentinc/cp-kafka-connect:5.2.2
+    depends_on:
+      - kafka1
+      - kafka2
+    ports:
+      - "8083:8083"
+    environment:
+      CONNECT_PLUGIN_PATH: "/usr/share/java"
+      CONNECT_BOOTSTRAP_SERVERS: 'kafka1:9092,kafka2:9092'
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: compose-connect-group
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_KEY_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      CONNECT_CONFIG_STORAGE_TOPIC: "connect-config"
+      CONNECT_OFFSET_STORAGE_TOPIC: "connect-offset"
+      CONNECT_STATUS_STORAGE_TOPIC: "connect-status"
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "ERROR"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "2"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "2"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "2"
+
+  connect-ui:
+    image: landoop/kafka-connect-ui:0.9.7
+    ports:
+      - "8084:8084"
+    environment:
+      PORT: "8084"
+      PROXY: "true"
+      CONNECT_URL: "http://connect:8083"
+    depends_on:
+      - "connect"
+
   flask:
+    image: flask_app
     build: ./flask
     ports:
       - "3030:3030"
     links:
       - kafka1
       - kafka2
+      - producer
+    environment:
+      PYTHONUNBUFFERED: 1
 
+  producer:
+    image: producer
+    build: ./producer
+    ports:
+      - "3031:3031"
+    links:
+      - kafka1
+      - kafka2
+    environment:
+      PYTHONUNBUFFERED: 1
+      DOCKER: True
+
+  postgres:
+    image: postgres:15.1
+    environment:
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./data:/var/lib/postgresql/data
+
+  #faust:
+  #  image: faust
+  #  build: ./faust
+  #  ports:
+  #    - "3032:3032"
+  #  links:
+  #    - kafka1
+  #    - kafka2
+  #  environment:
+  #    PYTHONUNBUFFERED: 1
+  #    DOCKER: True
+  #    KAFKA_NUM_PARTITIONS: 2
+  #    KAFKA_REPLICATION_FACTOR: 2
