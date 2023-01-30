@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
 
   zookeeper:
@@ -50,21 +50,59 @@ services:
       echo -e 'Creating kafka topics'
       kafka-topics --bootstrap-server kafka1:9092 --create --if-not-exists --topic raw_trafficdata --replication-factor 2 --partitions 2
       kafka-topics --bootstrap-server kafka1:9092 --create --if-not-exists --topic raw_weatherdata --replication-factor 2 --partitions 2
+      kafka-topics --bootstrap-server kafka1:9092 --create --if-not-exists --topic processed_trafficdata --replication-factor 2 --partitions 2
       
       echo -e 'Successfully created the following topics:'
       kafka-topics --bootstrap-server kafka1:9092 --list
       "
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.3.0
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "kafka1:9092,kafka2:9092"
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      SCHEMA_REGISTRY_HOST_NAME: "schema-registry"
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: "2"
+    depends_on:
+      - "kafka1"
+      - "kafka2"
+
+  schema-registry-ui:
+    image: landoop/schema-registry-ui:0.9.5
+    ports:
+      - "8086:8086"
+    environment:
+      PORT: "8086"
+      PROXY: "true"
+      SCHEMAREGISTRY_URL: "http://schema-registry:8081/"
+    depends_on:
+      - "schema-registry"
+
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.3.0
+    ports:
+      - "8082:8082"
+    environment:
+      KAFKA_REST_BOOTSTRAP_SERVERS: "kafka1:9092,kafka2:9092"
+      KAFKA_REST_LISTENERS: "http://0.0.0.0:8082/"
+      KAFKA_REST_HOST_NAME: "rest-proxy"
+      KAFKA_REST_SCHEMA_REGISTRY_URL: "http://schema-registry:8081/"
+    depends_on:
+      - "kafka1"
+      - "kafka2"
+      - "schema-registry"
+
   connect:
-    image: confluentinc/cp-kafka-connect:5.2.2
+    image: confluentinc/cp-kafka-connect-base:7.3.0
     depends_on:
       - kafka1
       - kafka2
     ports:
       - "8083:8083"
     environment:
-      CONNECT_PLUGIN_PATH: "/usr/share/java"
-      CONNECT_BOOTSTRAP_SERVERS: 'kafka1:9092,kafka2:9092'
+      CONNECT_BOOTSTRAP_SERVERS: "kafka1:9092,kafka2:9092"
       CONNECT_REST_PORT: 8083
       CONNECT_GROUP_ID: compose-connect-group
       CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
@@ -81,17 +119,18 @@ services:
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "2"
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "2"
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "2"
-
-  connect-ui:
-    image: landoop/kafka-connect-ui:0.9.7
-    ports:
-      - "8084:8084"
-    environment:
-      PORT: "8084"
-      PROXY: "true"
-      CONNECT_URL: "http://connect:8083"
-    depends_on:
-      - "connect"
+    command:
+      - bash
+      - -c
+      - |
+        echo "Installing Connector"
+        confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.6.0
+        
+        #
+        echo "Launching Kafka Connect worker"
+        /etc/confluent/docker/run &
+        #
+        sleep infinity
 
   flask:
     image: flask_app
@@ -116,6 +155,23 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
       DOCKER: True
+    depends_on:
+      - schema-registry
+
+  dashboard:
+    image: dashboard
+    build: ./dashboard
+    command: "streamlit run streamlit.py"
+    ports:
+      - "8501:8501"
+    volumes:
+      - "./src:/usr/src/app/src"
+    environment:
+      PYTHONUNBUFFERED: 1
+      DOCKER: True
+    depends_on:
+      - producer
+      - kafka1
 
   postgres:
     image: postgres:15.1
@@ -142,3 +198,26 @@ services:
   #    DOCKER: True
   #    KAFKA_NUM_PARTITIONS: 2
   #    KAFKA_REPLICATION_FACTOR: 2
+
+  # faust-project:
+  #    tty: true
+  #    build: ./faust-project
+  #    command: ./run.sh
+  #    depends_on:
+  #      - zookeeper
+  #      - kafka
+  #      - schema-registry
+  #    environment:
+  #      - WORKER=example
+  #      - WORKER_PORT=6066
+  #      - KAFKA_BOOTSTRAP_SERVER=kafka://kafka:9092
+  #      - KAFKA_BOOSTRAP_SERVER_NAME=kafka
+  #      - KAFKA_BOOSTRAP_SERVER_PORT=9092
+  #      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+  #      - SCHEMA_REGISTRY_SERVER=schema-registry
+  #      - SCHEMA_REGISTRY_SERVER_PORT=8081
+  #    ports:
+  #      - "8084:80"
+  #      - "8000:8000"
+  #    volumes:
+  #      - ./scripts:/faust-project/scripts

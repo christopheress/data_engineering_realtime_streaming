@@ -1,47 +1,59 @@
 import faust
 import os
+import models
+
 
 # 1. Define the application
 app = faust.App('sensor_counts',
                 broker=['kafka://localhost:8097', 'kafka://localhost:8098'],
-                topic_partitions=os.getenv('KAFKA_NUM_PARTITIONS', 2),
+                #topic_partitions=os.getenv('KAFKA_NUM_PARTITIONS', 2),
+                #partitions=os.getenv('KAFKA_NUM_PARTITIONS', 2),
                 web_port=6666)
 
 
-# 2. Model definition
-class SensorCount(faust.Record):
-    sensor_id: int
-    timestamp: str
-    temperature: float
-    air_humidity: float
-    wind_speed: float
-    sunshine: bool
+# 2. Input stream
+traffic_count_topic = app.topic('raw_trafficdata', value_type=models.TrafficModel) #, partitions=os.getenv('KAFKA_NUM_PARTITIONS', 2)
+processed_data_topic = app.topic('processed_trafficdata')
+
+# 3. Define faust table
+sensor_counts = app.Table('data_counts', default=int, partitions=os.getenv('KAFKA_NUM_PARTITIONS', 2))
 
 
-class TrafficData(faust.Record):
-    timestamp: str
-    long: int
-    lat: float
-    cars_ratio: float
 
 
-# 3. Input stream
-traffic_count_topic = app.topic('raw_trafficdata', value_type=TrafficData,
-                                partitions=os.getenv('KAFKA_NUM_PARTITIONS', 2))
-
-# 4. Define faust table
-sensor_counts = app.Table('data_count', default=int, partitions=os.getenv('KAFKA_NUM_PARTITIONS', 2))
-
-
-# 5. Define agent
+# 4. Define agent
 @app.agent(traffic_count_topic)
 async def count_data(stream):
     async for payload in stream:  # .group_by(SensorCount.sensor_id)
-        sensor_counts[payload.sensor_id] += 1
+        sensor_id = payload.sensor_id
+        sensor_counts[sensor_id] += 1
+
+        if(sensor_counts[sensor_id] % 20 == 0):
+            print(f"Sensor {sensor_id} has {sensor_counts[sensor_id]} counts")
+            await processed_data_topic.send(
+                key=sensor_id,
+                value=sensor_counts[sensor_id]
+            )
+
+#@app.agent(traffic_count_topic)
+#async def count_hits(counts):
+ #   async for count in counts:
+ #       print(f"Data recieved is {count}")
+ #       if sensor_counts[sensor_id] > 20:
+ #           await sensor_counts.send(value=count)
 
 
-if __name__ == '__main__':
+#@app.agent(processed_data_topic)
+#async def increment_count(counts):
+#    async for count in counts:
+#        print(f"Count in internal topic is {count}")
+ #        sensor_counts[str(count.sensor_id)]+=1
+ #       print(f'{str(count.sensor_id)} has now been seen {sensor_counts[str(count.sensor_id)]} times')
+
+
+def main() -> None:
     app.main()
+
 
 # faust -A stream worker -l info
 # docker exec -it 67974ec0928ed396337faff5f2e25aa3c814e0291d39820ca81047b6e584b2d9 bash
