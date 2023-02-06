@@ -145,7 +145,7 @@ services:
       PYTHONUNBUFFERED: 1
 
   producer:
-    image: producer
+    image: producer_python
     build: ./producer
     ports:
       - "3031:3031"
@@ -157,6 +157,12 @@ services:
       DOCKER: True
     depends_on:
       - schema-registry
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      cd produce_data
+      python3 produce_rawdata.py
+      "
 
   dashboard:
     image: dashboard
@@ -185,39 +191,21 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./data:/var/lib/postgresql/data
 
-  #faust:
-  #  image: faust
-  #  build: ./faust
-  #  ports:
-  #    - "3032:3032"
-  #  links:
-  #    - kafka1
-  #    - kafka2
-  #  environment:
-  #    PYTHONUNBUFFERED: 1
-  #    DOCKER: True
-  #    KAFKA_NUM_PARTITIONS: 2
-  #    KAFKA_REPLICATION_FACTOR: 2
+  faust:
+    image: producer_python
+    build: ./producer
+    ports:
+      - "3032:3032"
+    restart: on-failure
+    depends_on:
+      - zookeeper
+      - kafka1
+      - kafka2
+      - schema-registry
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      cd stream_data
+      faust -A stream worker -l info
+      "
 
-  # faust-project:
-  #    tty: true
-  #    build: ./faust-project
-  #    command: ./run.sh
-  #    depends_on:
-  #      - zookeeper
-  #      - kafka
-  #      - schema-registry
-  #    environment:
-  #      - WORKER=example
-  #      - WORKER_PORT=6066
-  #      - KAFKA_BOOTSTRAP_SERVER=kafka://kafka:9092
-  #      - KAFKA_BOOSTRAP_SERVER_NAME=kafka
-  #      - KAFKA_BOOSTRAP_SERVER_PORT=9092
-  #      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
-  #      - SCHEMA_REGISTRY_SERVER=schema-registry
-  #      - SCHEMA_REGISTRY_SERVER_PORT=8081
-  #    ports:
-  #      - "8084:80"
-  #      - "8000:8000"
-  #    volumes:
-  #      - ./scripts:/faust-project/scripts

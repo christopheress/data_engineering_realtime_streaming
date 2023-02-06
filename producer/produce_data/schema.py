@@ -54,7 +54,7 @@ traffic_schema = {
     ]
 }
 
-client = SchemaRegistryClient(url="http://0.0.0.0:8081/")
+client = SchemaRegistryClient(url="http://schema-registry:8081/")
 
 avro_weather_serializer = AvroMessageSerializer(client, "weather", schema.AvroSchema(weather_schema))
 avro_traffic_serializer = AvroMessageSerializer(client, "traffic", schema.AvroSchema(traffic_schema))

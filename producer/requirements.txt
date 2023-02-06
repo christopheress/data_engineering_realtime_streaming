@@ -1,3 +1,5 @@
 requests==2.28.1
 kafka-python==2.0.2
+faust-streaming==0.10.4
+dataclasses-avroschema==0.36.1
 python-schema-registry-client==2.4.1

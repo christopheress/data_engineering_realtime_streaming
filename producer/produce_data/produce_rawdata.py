@@ -2,9 +2,9 @@ import time
 from os import environ
 import requests
 from kafka import KafkaProducer
-from schema_registry.client import SchemaRegistryClient, schema
+from schema_registry.client import SchemaRegistryClient
 from schema_registry.serializers import AvroMessageSerializer
-
+import schema
 
 # Variables depend on environment
 if environ.get('DOCKER') is not None:
@@ -36,9 +36,8 @@ def get_data_stream(source='trafficdata'):
 
 if __name__ == '__main__':
 
-    time.sleep(20)  # Wait for Kafka Brokers
-    schema.init_schema(url_registry="http://schema-registry:8081/")  # Create schema avro registry
-
+    time.sleep(15)
+    schema.init_schema(url_registry=link_schema)  # Create schema avro registry
     producer = KafkaProducer(bootstrap_servers=server)
 
     while True:
@@ -47,4 +46,4 @@ if __name__ == '__main__':
 
         msg_weather = get_data_stream(source='weatherdata')
         producer.send(topic="raw_weatherdata", value=msg_weather)
-        time.sleep(0.1)
+        #time.sleep(0.1)
