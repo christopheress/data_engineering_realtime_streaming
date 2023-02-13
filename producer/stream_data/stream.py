@@ -1,10 +1,13 @@
+import time
 import faust
 import models
+
+# 0. Wait that kafka topics are created
+time.sleep(5)
 
 # 1. Define the application
 app = faust.App('sensor_counts',
                 broker=['kafka://kafka1:9092', 'kafka://kafka2:9092'],
-                # ['kafka://kafka1:9092', 'kafka://kafka2:9092'], #['kafka://localhost:8097', 'kafka://localhost:8098']
                 web_port=6666)
 
 # 2. Input stream

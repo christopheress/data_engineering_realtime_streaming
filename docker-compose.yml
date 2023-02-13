@@ -160,6 +160,7 @@ services:
     entrypoint: [ '/bin/sh', '-c' ]
     command: |
       "
+      /app/wait_for_services.sh
       cd produce_data
       python3 produce_rawdata.py
       "
@@ -205,6 +206,7 @@ services:
     entrypoint: [ '/bin/sh', '-c' ]
     command: |
       "
+      /app/wait_for_services.sh
       cd stream_data
       faust -A stream worker -l info
       "
