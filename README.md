@@ -2,6 +2,13 @@
 Welcome to the Data Engineer Repository, where you will find a real-time data stream application. The project is designed to demonstrate the use of modern tools and technologies to process and visualize real-time data. 
 All components are containerized and can be deployed to a local machine. No cloud services are required.
 
+## Prerequisites
+The following are required to complete this project:
+
+* Docker
+* Python 3.10
+* Access to a computer with a minimum of 32gb+ RAM and a 4-core CPU to execute the simulation
+
 ## Software Components
 The following software components are part of the project:
 
@@ -15,7 +22,11 @@ The following software components are part of the project:
 
 * Faust framework: A Python library for building stream processing applications with Apache Kafka.
 
-* Streamlit: An open-source app framework for Machine Learning and Data Science teams to create beautiful and performant apps in hours.
+* Streamlit: An open-source app framework for Machine Learning and Data Science teams to create beautiful and performant apps in short time.
+
+Our architecture will look like so:
+
+![Project Architecture](readme_files/architecture.png)
 
 ## Microservice Architecture
 The project is built using a microservice architecture, where each component is deployed as a separate service. The services are then connected and coordinated using Docker Compose, which allows you to define and run multi-container Docker applications.
@@ -37,7 +48,11 @@ Run the following command to start the services:
 ``` bash
 docker-compose up -d
 ```
-This will start all the services defined in the docker-compose.yml file. You can then access the Streamlit app at http://localhost:8501 to visualize the data.
+This will start all the services defined in the docker-compose.yml file. You can then access the Streamlit app at http://localhost:8501 to visualize the data. 
+If there is a failure in the dasboard, just refresh the page.
+
+The dashboard will look like so:
+![Dashboard_GIF](readme_files/Streamlit_GIF.gif)
 
 ## Conclusion
 That's it! You now have a working real-time data stream application that you can use to experiment and learn more about modern data engineering technologies. If you have any questions or feedback, feel free to reach out.

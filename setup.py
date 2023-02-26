@@ -23,7 +23,8 @@ setup(
     install_requires=requires,
     entry_points={
         'faust.codecs': [
-            'avro_traffic = schema:avro_traffic_codec'
+            'avro_traffic = schema:avro_traffic_codec',
+            'avro_weather = schema:avro_weather_codec'
         ]
     }
 )

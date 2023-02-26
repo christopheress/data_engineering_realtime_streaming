@@ -2,6 +2,7 @@ import json
 import random
 from datetime import datetime
 from flask import Flask, json
+import scipy.stats as stats
 
 app = Flask(__name__)
 
@@ -11,8 +12,8 @@ def get_weatherdata():
 
     data = {
         'sensor_id': str(random.randint(1, 100)),
-        'timestamp': "{}".format((datetime.now()).now().isoformat()),
-        'temperature': round(random.uniform(31.5, -5.0), 2),
+        'timestamp': int(datetime.now().timestamp() * 1000),
+        'temperature': stats.norm.rvs(loc=15, scale=10, size=1)[0],
         'air_humidity': round(random.uniform(100.0, 0.0), 2),
         'wind_speed': round(random.uniform(80.0, 0.0), 2),
         'sunshine': random.choice([True, False])
@@ -30,7 +31,7 @@ def get_trafficdata():
 
     data = {
         'sensor_id': str(random.randint(101, 200)),
-        'timestamp': "{}".format((datetime.now()).now().isoformat()),
+        'timestamp': int(datetime.now().timestamp() * 1000),
         'long': str(random.randint(1, 100)),
         'lat': str(random.randint(1, 100)),
         'cars_ratio': round(random.uniform(0, 1), 2)

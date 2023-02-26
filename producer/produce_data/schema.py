@@ -8,6 +8,13 @@ weather_schema = {
     "name": "weather.value",
     "fields": [
         {
+            "name": "timestamp",
+            "type": {
+                "type": "long",
+                "logicalType": "timestamp-millis"
+            }
+        },
+        {
             "name": "sensor_id",
             "type": "string"
         },
@@ -35,6 +42,13 @@ traffic_schema = {
     "name": "traffic.value",
     "namespace": "traffic.value",
     "fields": [
+        {
+            "name": "timestamp",
+            "type": {
+                "type": "long",
+                "logicalType": "timestamp-millis"
+            }
+        },
         {
             "name": "sensor_id",
             "type": "string"
@@ -74,5 +88,5 @@ def avro_weather_codec():
 # Send the schema to the registry
 def init_schema(url_registry="http://schema-registry:8081/"):
     client = SchemaRegistryClient(url=url_registry)
-    client.register('weatherdata', schema.AvroSchema(weather_schema))
-    client.register('trafficdata', schema.AvroSchema(traffic_schema))
+    client.register('raw_weatherdata-value', schema.AvroSchema(weather_schema))
+    client.register('raw_trafficdata-value', schema.AvroSchema(traffic_schema))

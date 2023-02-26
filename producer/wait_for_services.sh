@@ -11,4 +11,9 @@ while ! nc -z schema-registry 8081; do
   sleep 1
 done
 
-echo "Kafka and Schema Registry are running. Starting services ..."
+while ! nc -z connect 8083; do
+  echo "Waiting for Kafka Connect to start..."
+  sleep 1
+done
+
+echo "Kafka, Connect and Schema Registry are running. Starting services ..."

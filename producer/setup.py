@@ -15,14 +15,14 @@ setup(
         "Programming Language :: Python"
     ],
     author='Christopher Essmann',
-    author_email='christopher.essmann@web.de',
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
     install_requires=requires,
     entry_points={
         'faust.codecs': [
-            'avro_traffic = produce_data.schema:avro_traffic_codec'
+            'avro_traffic = produce_data.schema:avro_traffic_codec',
+            'avro_weather = produce_data.schema:avro_weather_codec'
         ]
     }
 )

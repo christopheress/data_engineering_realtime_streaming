@@ -1,28 +1,18 @@
 CREATE TABLE IF NOT EXISTS raw_weather (
-    timestamp TIMESTAMP,
+    timestamp timestamp,
     sensor_id TEXT,
     temperature NUMERIC,
     air_humidity NUMERIC,
     wind_speed NUMERIC,
-    sunshine BOOLEAN
+    sunshine BOOLEAN,
+    PRIMARY KEY (timestamp)
 );
 
 CREATE TABLE IF NOT EXISTS raw_traffic (
-    timestamp TIMESTAMP,
+    timestamp timestamp,
     sensor_id TEXT,
     long TEXT,
     lat TEXT,
-    cars_ratio NUMERIC
+    cars_ratio NUMERIC,
+    PRIMARY KEY (timestamp)
 );
-
-/*CREATE TABLE IF NOT EXISTS stream_weather (
-    column1 datatype,
-    column2 datatype,
-    column3 datatype
-);
-
-CREATE TABLE IF NOT EXISTS stream_traffic (
-    column1 datatype,
-    column2 datatype,
-    column3 datatype
-);*/

@@ -18,16 +18,15 @@ else:
     link_schema = "http://127.0.0.1:8081"
     print('Stage: Local')
 
-
 client = SchemaRegistryClient(link_schema)
 avro_message_serializer = AvroMessageSerializer(client)
+
 
 def get_data_stream(source='trafficdata'):
     try:
         url = 'http://' + flask_link + ':3030/' + source + '/'
         answer = requests.get(url)
-
-        id_schema = client.get_schema(source, 1).schema_id
+        id_schema = client.get_schema('raw_' + source + '-value', 1).schema_id
         avro_answer = avro_message_serializer.encode_record_with_schema_id(id_schema, answer.json())
         return avro_answer
     except:
@@ -36,7 +35,7 @@ def get_data_stream(source='trafficdata'):
 
 if __name__ == '__main__':
 
-    time.sleep(15)
+    #time.sleep(15)
     schema.init_schema(url_registry=link_schema)  # Create schema avro registry
     producer = KafkaProducer(bootstrap_servers=server)
 
@@ -46,4 +45,4 @@ if __name__ == '__main__':
 
         msg_weather = get_data_stream(source='weatherdata')
         producer.send(topic="raw_weatherdata", value=msg_weather)
-        #time.sleep(0.1)
+        # time.sleep(0.1)
