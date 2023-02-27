@@ -1,88 +1,98 @@
 # Streamlit application for the dashboard
 
-import streamlit as st
-from kafka import KafkaConsumer
 import json
+
 import pandas as pd
-import time
+from kafka import KafkaConsumer
 
-print("Starting consumer. Waiting for kafka to start up")
-time.sleep(20)
+import streamlit as st
 
-# Define kafka consumer
-consumer_traffic = KafkaConsumer("processed_trafficdata",
-                                 bootstrap_servers=['kafka1:9092', 'kafka2:9092'],
-                                 auto_offset_reset='earliest',
-                                 enable_auto_commit=True)
+brokers = ['localhost:8097', 'localhost:8098']#['kafka1:9092', 'kafka2:9092'] # ['localhost:8097', 'localhost:8098'] for local testing
 
-consumer_weather = KafkaConsumer("processed_weatherdata",
-                                 bootstrap_servers=['kafka1:9092', 'kafka2:9092'],
-                                 auto_offset_reset='earliest',
-                                 enable_auto_commit=True)
 
-st.title('Traffic data sensor count')
-st.markdown('This is a live stream of the sensor count')
+class DataStream:
+    def __init__(self, topic, columns):
+        self.consumer = KafkaConsumer(
+            topic,
+            bootstrap_servers=brokers,
+            auto_offset_reset="earliest",
+            enable_auto_commit=True,
+        )
+        self.df = pd.DataFrame(columns=columns)
+        self.barchart = st.empty()
 
-# Initialize empty dataframe
-df_traffic = pd.DataFrame(columns=['sensor_id', 'count'])
-barchart_traffic = st.empty()
+    def update_data_df(self, column):
 
-# Elements for weather data
-st.title('Weather data temperature distribution')
-st.markdown('This is a live stream of the temperature distribution')
+        """
+        This function updates the dataframe with new data received from the Kafka consumer.
+        """
 
-df_weather = pd.DataFrame(columns=['temperature', 'count'])
-barchart_weather = st.empty()
+        data = self.consumer.poll(timeout_ms=2000)
 
-# DATA STREAM AND VISUALIZATION
-while True:
-    data_traffic = consumer_traffic.poll(timeout_ms=2000)
+        if not data:
+            return
 
-    if not data_traffic:
-        continue
+        for key, value in data.items():
+            for record in value:
+                value_count = json.loads(record.value)
+                key_value = json.loads(record.key)
 
-    for key, value in data_traffic.items():
+                # If the key value is already in the dataframe, update the count value
+                if key_value in self.df[column].values:
+                    self.df.loc[self.df[column] == key_value, "count"] = value_count
 
-        for record in value:
-            value_count = json.loads(record.value)
-            sensor_id = json.loads(record.key)
+                # If the key value is not in the dataframe, add a new row to the dataframe
+                else:
+                    self.df = pd.concat([self.df,
+                                         pd.DataFrame({
+                                             column: [key_value],
+                                             "count": [value_count]})],
+                                        ignore_index=True)
 
-            # Check if sensor id already exists in dataframe
-            if sensor_id in df_traffic['sensor_id'].values:
-                df_traffic.loc[df_traffic['sensor_id'] == sensor_id, 'count'] = value_count
-            else:
-                # Add new data to dataframe
-                df_traffic = pd.concat([df_traffic, pd.DataFrame({'sensor_id': [sensor_id], 'count': [value_count]})],
-                                       ignore_index=True)
 
-    # Update streamlit bar chart
-    with barchart_traffic:
-        st.bar_chart(df_traffic, x='sensor_id', y='count')
+class TrafficData(DataStream):
+    """
+    This class is used to update the traffic data chart.
+    """
+    def __init__(self):
+        super().__init__("processed_trafficdata", ["sensor_id", "count"])
 
-    # Second consumer
-    data_weather = consumer_weather.poll(timeout_ms=2000)
+    def update_chart(self):
+        with self.barchart:
+            st.bar_chart(self.df, x="sensor_id", y="count")
 
-    if not data_weather:
-        continue
 
-    for key, value in data_weather.items():
+class WeatherData(DataStream):
+    """
+    This class is used to update the weather data chart.
+    """
+    def __init__(self):
+        super().__init__("processed_weatherdata", ["temperature", "count"])
 
-        for record in value:
-            value_count = json.loads(record.value)
-            temperature = json.loads(record.key)
+    def update_chart(self):
+        with self.barchart:
+            st.bar_chart(self.df, x="temperature", y="count")
 
-            # Check if temperature already exists in dataframe
-            if temperature in df_weather['temperature'].values:
-                df_weather.loc[df_weather['temperature'] == temperature, 'count'] = value_count
-            else:
-                # Add new data to dataframe
-                df_weather = pd.concat(
-                    [df_weather, pd.DataFrame({'temperature': [temperature], 'count': [value_count]})],
-                    ignore_index=True)
 
-    # Update streamlit bar chart
-    with barchart_weather:
-        st.bar_chart(df_weather, x='temperature', y='count')
+def main():
+    st.title("Traffic data sensor count")
+    st.markdown("This is a live stream of the sensor count")
+    traffic_data = TrafficData()
+
+    st.title("Weather data temperature distribution")
+    st.markdown("This is a live stream of the temperature distribution")
+    weather_data = WeatherData()
+
+    while True:
+        traffic_data.update_data_df(column="sensor_id")
+        traffic_data.update_chart()
+
+        weather_data.update_data_df(column="temperature")
+        weather_data.update_chart()
+
+
+if __name__ == "__main__":
+    main()
 
 # Start Streamlit app
 # streamlit run dashboard/streamlit.py

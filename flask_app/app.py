@@ -1,8 +1,9 @@
 import json
 import random
 from datetime import datetime
-from flask import Flask, json
+
 import scipy.stats as stats
+from flask import Flask, json
 
 app = Flask(__name__)
 

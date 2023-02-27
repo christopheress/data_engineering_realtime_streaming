@@ -7,7 +7,7 @@ The following are required to complete this project:
 
 * Docker
 * Python 3.10
-* Access to a computer with a minimum of 32gb+ RAM and a 4-core CPU to execute the simulation
+* Access to a computer with a minimum of 16gb+ RAM and a 4-core CPU to execute the simulation
 
 ## Software Components
 The following software components are part of the project:
@@ -34,7 +34,7 @@ The project is built using a microservice architecture, where each component is 
 ## Running the Application
 To run the application, you will need to have Docker and Docker Compose installed on your machine. Once you have those, you can use the following steps to get the application up and running:
 
-## Clone the repository:
+### Clone the repository:
 bash
 Copy code
 git clone https://github.com/your-username/data-engineer-repository.git
@@ -53,6 +53,19 @@ If there is a failure in the dasboard, just refresh the page.
 
 The dashboard will look like so:
 ![Dashboard_GIF](readme_files/Streamlit_GIF.gif)
+
+### Test Postgresl Database
+To test the connection and functionality of the sink connector between Kafka and PostgreSQL, you can connect to the PostgreSQL database using the following local configuration:
+* Host: localhost
+* Port: 5432
+* Database: mydatabase
+* User: myuser
+* Password: mypassword
+
+You can find these configurations in the docker-compose.yml file. Once you have connected to the database, you can use the following SQL statement to view the number of messages that have been uploaded to the database:
+``` sql
+SELECT COUNT(*) FROM "raw_traffic";
+```
 
 ## Conclusion
 That's it! You now have a working real-time data stream application that you can use to experiment and learn more about modern data engineering technologies. If you have any questions or feedback, feel free to reach out.
