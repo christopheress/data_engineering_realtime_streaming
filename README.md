@@ -43,7 +43,7 @@ Change into the cloned directory:
 ``` bash
 cd data-engineer-repository
 ```
-Run the following command to start the services:
+Run the following command to start the services (Attention: the first execution may take a little longer, as all services have to be downloaded.):
     
 ``` bash
 docker-compose up -d

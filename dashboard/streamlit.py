@@ -7,7 +7,7 @@ from kafka import KafkaConsumer
 
 import streamlit as st
 
-brokers = ['localhost:8097', 'localhost:8098']#['kafka1:9092', 'kafka2:9092'] # ['localhost:8097', 'localhost:8098'] for local testing
+brokers = ['kafka1:9092', 'kafka2:9092'] # ['localhost:8097', 'localhost:8098'] for local testing
 
 
 class DataStream:
